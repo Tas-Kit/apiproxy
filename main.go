@@ -59,7 +59,7 @@ func main() {
 	fmt.Println(urls)
 	// exempt_route(urls)
 	// auth_route(urls)
-	http.Handle("/api", &httputil.ReverseProxy{
+	http.Handle("/", &httputil.ReverseProxy{
 		Director: func(r *http.Request) {
 			r.URL.Scheme = "http"
 			for suburl, host := range urls {
