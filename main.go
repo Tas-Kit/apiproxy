@@ -61,6 +61,7 @@ func main() {
 	// auth_route(urls)
 	http.Handle("/", &httputil.ReverseProxy{
 		Director: func(r *http.Request) {
+			fmt.Println("base url", r.URL.Path)
 			r.URL.Scheme = "http"
 			for suburl, host := range urls {
 				if strings.HasPrefix(r.URL.Path, suburl) {
