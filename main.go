@@ -9,25 +9,31 @@ import (
 )
 
 func exempt_route(urls map[string]string) {
-	http.Handle(suburl+"exempt/", &httputil.ReverseProxy{
-		Director: func(r *http.Request) {
-			fmt.Println("exempt", r.URL.Path, suburl)
-			r.URL.Scheme = "http"
-			r.URL.Host = urls[suburl]
-			r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
-			fmt.Println("after", r.URL.Path, host)
-		}})
+	for suburl, _ := range urls {
+		http.Handle(suburl+"exempt/", &httputil.ReverseProxy{
+			Director: func(r *http.Request) {
+				fmt.Println("exempt", r.URL.Path, suburl)
+				r.URL.Scheme = "http"
+				host := urls[suburl]
+				r.URL.Host = host
+				r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
+				fmt.Println("after", r.URL.Path, host)
+			}})
+	}
 }
 
 func auth_route(urls map[string]string) {
-	http.Handle(suburl, &httputil.ReverseProxy{
-		Director: func(r *http.Request) {
-			fmt.Println("auth", r.URL.Path, suburl)
-			r.URL.Scheme = "http"
-			r.URL.Host = urls[suburl]
-			r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
-			fmt.Println("after", r.URL.Path, host)
-		}})
+	for suburl, _ := range urls {
+		http.Handle(suburl, &httputil.ReverseProxy{
+			Director: func(r *http.Request) {
+				fmt.Println("auth", r.URL.Path, suburl)
+				r.URL.Scheme = "http"
+				host := urls[suburl]
+				r.URL.Host = host
+				r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
+				fmt.Println("after", r.URL.Path, host)
+			}})
+	}
 }
 
 func default_handler(rw http.ResponseWriter, req *http.Request) {
