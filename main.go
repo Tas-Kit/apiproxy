@@ -44,9 +44,9 @@ func main() {
 	urls := make(map[string]string)
 	for _, env := range os.Environ() {
 		variable := strings.Split(env, "=")
-		if strings.Contains(variable[0], "SERVICE") {
+		if strings.Contains(variable[0], "SERVICE_TASKIT") {
 			suburl := variable[1]
-			host := os.Getenv(strings.Replace(variable[0], "SERVICE", "HOST", 1))
+			host := os.Getenv(strings.Replace(variable[0], "SERVICE_TASKIT", "HOST_TASKIT", 1))
 			fmt.Println(suburl, host)
 			urls[suburl] = host
 		}
