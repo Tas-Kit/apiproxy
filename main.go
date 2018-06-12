@@ -16,7 +16,7 @@ func exempt_route(urls map[string]string) {
 				r.URL.Scheme = "http"
 				r.URL.Host = host
 				r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
-				fmt.Println("after", r.URL.Path)
+				fmt.Println("after", r.URL.Path, host)
 			}})
 	}
 }
@@ -29,7 +29,7 @@ func auth_route(urls map[string]string) {
 				r.URL.Scheme = "http"
 				r.URL.Host = host
 				r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
-				fmt.Println("after", r.URL.Path)
+				fmt.Println("after", r.URL.Path, host)
 			}})
 	}
 }
