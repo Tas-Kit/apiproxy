@@ -1,15 +1,51 @@
 package main
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
+
+	"errors"
 	"strings"
 )
 
-func authenticate(r *http.Request) {
+func authenticate(r *http.Request) error {
+	fmt.Println(r.Cookies())
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == "JWT" {
+			jwtToken := cookie.Value
+			token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+				// Don't forget to validate the alg is what you expect:
+				if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				}
+				pubkey, _ := ioutil.ReadFile("secrets/jwtRS256.key.pub")
 
+				block, _ := pem.Decode(pubkey)
+				key, _ := x509.ParsePKIXPublicKey(block.Bytes)
+				return key, nil
+			})
+			// fmt.Println("token", token, err)
+			if token != nil {
+				if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+					// fmt.Println()
+					cookie := http.Cookie{Name: "uid", Value: claims["user_id"].(string)}
+					r.AddCookie(&cookie)
+					fmt.Println(r.Cookies())
+					return nil
+				} else {
+					fmt.Println(err)
+					return err
+				}
+			}
+		}
+	}
+	return errors.New("Unable to find JWT Token.")
 }
 
 func main() {
@@ -23,6 +59,7 @@ func main() {
 			urls[suburl] = host
 		}
 	}
+	fmt.Println(urls)
 	http.Handle("/", &httputil.ReverseProxy{
 		Director: func(r *http.Request) {
 			fmt.Println("base url", r.URL.Path)
@@ -35,11 +72,15 @@ func main() {
 						fmt.Println("Exempting request")
 					} else {
 						fmt.Println("Auth request")
+						err := authenticate(r)
+						if err != nil {
+							fmt.Println(err)
+						}
 					}
 					fmt.Println("after", r.URL.Path, host)
 					break
 				}
 			}
 		}})
-	http.ListenAndServe(":8000", nil)
+	http.ListenAndServe(":7999", nil)
 }
