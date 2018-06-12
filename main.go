@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -9,14 +10,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 var urls map[string]string
 
-func authenticate(r *http.Request) error {
-	fmt.Println(r.Cookies())
+func authenticate(r *http.Request) (string, float64, error) {
+	// fmt.Println(r.Cookies())
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == "JWT" {
 			jwtToken := cookie.Value
@@ -31,26 +34,41 @@ func authenticate(r *http.Request) error {
 				key, _ := x509.ParsePKIXPublicKey(block.Bytes)
 				return key, nil
 			})
-			// fmt.Println("token", token, err)
 			if token != nil {
 				if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-					// fmt.Println()
 					cookie := http.Cookie{Name: "uid", Value: claims["user_id"].(string)}
 					r.AddCookie(&cookie)
-					fmt.Println(r.Cookies())
-					return nil
+					exp := claims["exp"].(float64)
+					now := float64(time.Now().Unix())
+					return jwtToken, exp - now, nil
 				} else {
-					fmt.Println(err)
-					return err
+					return "", 0, err
 				}
 			}
 		}
 	}
-	return errors.New("Unable to find JWT Token.")
+	return "", 0, errors.New("Unable to find JWT Token.")
+}
+
+func refresh(tokenString string) (string, error) {
+	path := os.Getenv("REFRESH_JWT")
+	// "http://localhost:8009/api/v1/userservice/refresh_jwt/"
+	resp, err := http.PostForm(path, url.Values{"token": {tokenString}})
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	var f map[string]string
+	err = json.Unmarshal(body, &f)
+	return f["token"], err
 }
 
 func direct(r *http.Request) {
 	r.URL.Scheme = "http"
+}
+
+func modify(r *http.Response) error {
+	fmt.Println(r.Request.Cookies())
+	fmt.Println(r.Cookies())
+	return nil
 }
 
 func authMiddleware(next http.Handler) http.Handler {
@@ -61,10 +79,19 @@ func authMiddleware(next http.Handler) http.Handler {
 				if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
 					next.ServeHTTP(w, r)
 				} else {
-					err := authenticate(r)
+					token, exp, err := authenticate(r)
 					if err != nil {
 						http.Error(w, "Authentication Error", 403)
 					} else {
+						fmt.Println("Exp", exp)
+						if exp >= 1 && exp < 5*60 {
+							newToken, err := refresh(token)
+							fmt.Println("Refresh JWT", newToken)
+							if err == nil {
+								cookie := &http.Cookie{Name: "JWT", Value: newToken, HttpOnly: false}
+								http.SetCookie(w, cookie)
+							}
+						}
 						next.ServeHTTP(w, r)
 					}
 				}
@@ -82,11 +109,11 @@ func main() {
 		if strings.Contains(variable[0], "SERVICE_TASKIT") {
 			suburl := variable[1]
 			host := os.Getenv(strings.Replace(variable[0], "SERVICE_TASKIT", "HOST_TASKIT", 1))
-			fmt.Println(suburl, host)
+			// fmt.Println(suburl, host)
 			urls[suburl] = host
 		}
 	}
-	fmt.Println(urls)
-	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct}))
+	// fmt.Println(urls)
+	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
 }
