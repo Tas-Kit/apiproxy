@@ -35,7 +35,7 @@ func auth_route(urls map[string]string) {
 }
 
 func default_handler(rw http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(rw, req)
+	fmt.Fprintf(rw, req.URL.Path)
 }
 
 func main() {
