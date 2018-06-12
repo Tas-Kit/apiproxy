@@ -37,13 +37,13 @@ import (
 // 	}
 // }
 
-func default_handler(rw http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(rw, req.URL.Path)
-}
+// func default_handler(rw http.ResponseWriter, req *http.Request) {
+// 	fmt.Fprintf(rw, req.URL.Path)
+// }
 
-func handler(rw http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(rw, req.URL.Path)
-}
+// func handler(rw http.ResponseWriter, req *http.Request) {
+// 	fmt.Fprintf(rw, req.URL.Path)
+// }
 
 func main() {
 	urls := make(map[string]string)
@@ -72,6 +72,6 @@ func main() {
 				}
 			}
 		}})
-	http.HandleFunc("/", default_handler)
+	// http.HandleFunc("/", default_handler)
 	http.ListenAndServe(":8000", nil)
 }
