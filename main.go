@@ -28,10 +28,9 @@ func main() {
 					fmt.Println("auth", r.URL.Path, suburl)
 					r.URL.Host = host
 					r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
-					if strings.HasPrefix(r.URL.Path, "/exempt/"){
+					if strings.HasPrefix(r.URL.Path, "/exempt/") {
 						fmt.Println("Exempting request")
-					}
-					else{
+					} else {
 						fmt.Println("Auth request")
 					}
 					fmt.Println("after", r.URL.Path, host)
