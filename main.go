@@ -15,7 +15,7 @@ func exempt_route(urls map[string]string) {
 				fmt.Println("exempt", r.URL.Path)
 				r.URL.Scheme = "http"
 				r.URL.Host = host
-				r.URL.Path = strings.Replace(r.URL.Path, suburl+"exempt/", "/exempt/", 1)
+				r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
 				fmt.Println("after", r.URL.Path)
 			}})
 	}
@@ -34,6 +34,10 @@ func auth_route(urls map[string]string) {
 	}
 }
 
+func default_handler(rw http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(rw, req)
+}
+
 func main() {
 	urls := make(map[string]string)
 	for _, env := range os.Environ() {
@@ -48,5 +52,6 @@ func main() {
 	fmt.Println(urls)
 	exempt_route(urls)
 	auth_route(urls)
+	http.HandleFunc("/", default_handler)
 	http.ListenAndServe(":8000", nil)
 }
