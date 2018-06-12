@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+func authenticate(r *http.Request) {
+
+}
+
 func main() {
 	urls := make(map[string]string)
 	for _, env := range os.Environ() {
@@ -27,8 +31,7 @@ func main() {
 				if strings.HasPrefix(r.URL.Path, suburl) {
 					fmt.Println("auth", r.URL.Path, suburl)
 					r.URL.Host = host
-					r.URL.Path = strings.Replace(r.URL.Path, suburl, "/", 1)
-					if strings.HasPrefix(r.URL.Path, "/exempt/") {
+					if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
 						fmt.Println("Exempting request")
 					} else {
 						fmt.Println("Auth request")
