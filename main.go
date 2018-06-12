@@ -23,7 +23,8 @@ func exempt_route(urls map[string]string) {
 }
 
 func auth_route(urls map[string]string) {
-	for suburl, _ := range urls {
+	for suburl, host := range urls {
+		fmt.Println("URL", suburl, host)
 		http.Handle(suburl, &httputil.ReverseProxy{
 			Director: func(r *http.Request) {
 				fmt.Println("auth", r.URL.Path, suburl)
