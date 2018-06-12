@@ -3,16 +3,17 @@ package main
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
-
-	"errors"
 	"strings"
 )
+
+var urls map[string]string
 
 func authenticate(r *http.Request) error {
 	fmt.Println(r.Cookies())
@@ -48,8 +49,34 @@ func authenticate(r *http.Request) error {
 	return errors.New("Unable to find JWT Token.")
 }
 
+func direct(r *http.Request) {
+	r.URL.Scheme = "http"
+}
+
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for suburl, host := range urls {
+			if strings.HasPrefix(r.URL.Path, suburl) {
+				r.URL.Host = host
+				if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
+					next.ServeHTTP(w, r)
+				} else {
+					err := authenticate(r)
+					if err != nil {
+						http.Error(w, "Authentication Error", 403)
+					} else {
+						next.ServeHTTP(w, r)
+					}
+				}
+				return
+			}
+		}
+		http.Error(w, "No matching URL: "+r.URL.Path, 400)
+	})
+}
+
 func main() {
-	urls := make(map[string]string)
+	urls = make(map[string]string)
 	for _, env := range os.Environ() {
 		variable := strings.Split(env, "=")
 		if strings.Contains(variable[0], "SERVICE_TASKIT") {
@@ -60,27 +87,6 @@ func main() {
 		}
 	}
 	fmt.Println(urls)
-	http.Handle("/", &httputil.ReverseProxy{
-		Director: func(r *http.Request) {
-			fmt.Println("base url", r.URL.Path)
-			r.URL.Scheme = "http"
-			for suburl, host := range urls {
-				if strings.HasPrefix(r.URL.Path, suburl) {
-					fmt.Println("auth", r.URL.Path, suburl)
-					r.URL.Host = host
-					if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
-						fmt.Println("Exempting request")
-					} else {
-						fmt.Println("Auth request")
-						err := authenticate(r)
-						if err != nil {
-							fmt.Println(err)
-						}
-					}
-					fmt.Println("after", r.URL.Path, host)
-					break
-				}
-			}
-		}})
+	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct}))
 	http.ListenAndServe(":8000", nil)
 }
