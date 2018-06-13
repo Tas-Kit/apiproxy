@@ -102,6 +102,10 @@ func authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func healthcheck(rw http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(rw, "HEALTHY")
+}
+
 func main() {
 	urls = make(map[string]string)
 	for _, env := range os.Environ() {
@@ -114,6 +118,7 @@ func main() {
 		}
 	}
 	// fmt.Println(urls)
+	http.HandleFunc("/healthcheck", healthcheck)
 	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
 }
