@@ -73,6 +73,16 @@ func modify(r *http.Response) error {
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if os.Getenv("ENV") == "sandbox" {
+			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH, DELETE")
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+
 		token, exp, auth_err := authenticate(r)
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
@@ -81,7 +91,7 @@ func authMiddleware(next http.Handler) http.Handler {
 					next.ServeHTTP(w, r)
 				} else {
 					if auth_err != nil {
-						http.Error(w, "Authentication Error", 403)
+						http.Error(w, "403 Access Forbiddent. Authentication Error", http.StatusForbidden)
 					} else {
 						fmt.Println("Exp", exp)
 						if exp >= 1 && exp < 5*60 {
