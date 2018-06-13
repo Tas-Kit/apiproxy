@@ -106,7 +106,7 @@ func authMiddleware(next http.Handler) http.Handler {
 				http.Redirect(w, r, "/web/basic/login/", http.StatusFound)
 			}
 		} else {
-			http.Error(w, "No matching URL: "+r.URL.Path, 400)
+			http.Error(w, "404 URL Not Found: "+r.URL.Path, http.StatusNotFound)
 		}
 	})
 }
