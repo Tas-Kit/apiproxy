@@ -73,21 +73,21 @@ func modify(r *http.Response) error {
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, exp, auth_err := authenticate(r)
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
 				r.URL.Host = host
 				if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
 					next.ServeHTTP(w, r)
 				} else {
-					token, exp, err := authenticate(r)
-					if err != nil {
+					if auth_err != nil {
 						http.Error(w, "Authentication Error", 403)
 					} else {
 						fmt.Println("Exp", exp)
 						if exp >= 1 && exp < 5*60 {
-							newToken, err := refresh(token)
+							newToken, token_err := refresh(token)
 							fmt.Println("Refresh JWT", newToken)
-							if err == nil {
+							if token_err == nil {
 								cookie := &http.Cookie{Name: "JWT", Value: newToken, HttpOnly: false}
 								http.SetCookie(w, cookie)
 							}
@@ -98,7 +98,16 @@ func authMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		http.Error(w, "No matching URL: "+r.URL.Path, 400)
+
+		if r.URL.Path == "/" {
+			if auth_err == nil {
+				http.Redirect(w, r, "/web/main/", http.StatusFound)
+			} else {
+				http.Redirect(w, r, "/web/basic/login/", http.StatusFound)
+			}
+		} else {
+			http.Error(w, "No matching URL: "+r.URL.Path, 400)
+		}
 	})
 }
 
