@@ -41,13 +41,11 @@ func authenticate(r *http.Request) (string, float64, error) {
 					exp := claims["exp"].(float64)
 					now := float64(time.Now().Unix())
 					return jwtToken, exp - now, nil
-				} else {
-					return "", 0, err
 				}
 			}
 		}
 	}
-	return "", 0, errors.New("Unable to find JWT Token.")
+	return "", 0, errors.New("Unable to validate JWT Token.")
 }
 
 func refresh(tokenString string) (string, error) {
@@ -99,7 +97,7 @@ func authMiddleware(next http.Handler) http.Handler {
 							newToken, token_err := refresh(token)
 							// fmt.Println("Refresh JWT", newToken)
 							if token_err == nil {
-								cookie := &http.Cookie{Name: "JWT", Value: newToken, HttpOnly: false}
+								cookie := &http.Cookie{Name: "JWT", Value: newToken, HttpOnly: false, Path: "/"}
 								http.SetCookie(w, cookie)
 							}
 						}
