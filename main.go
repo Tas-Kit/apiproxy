@@ -20,10 +20,12 @@ var urls map[string]string
 
 func authenticate(r *http.Request) (string, float64, error) {
 	// fmt.Println(r.Cookies())
+	var err error
+	var token *jwt.Token
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == "JWT" {
 			jwtToken := cookie.Value
-			token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+			token, err = jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
 				// Don't forget to validate the alg is what you expect:
 				if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 					return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
@@ -45,7 +47,7 @@ func authenticate(r *http.Request) (string, float64, error) {
 			}
 		}
 	}
-	return "", 0, errors.New("Unable to validate JWT Token.")
+	return "", 0, errors.New("Unable to validate JWT Token. Detail: " + err.Error())
 }
 
 func refresh(tokenString string) (string, error) {
