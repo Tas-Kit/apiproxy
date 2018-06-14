@@ -84,6 +84,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		token, exp, auth_err := authenticate(r)
+		fmt.Println("Cookies", r.Cookies())
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
 				r.URL.Host = host
@@ -91,12 +92,12 @@ func authMiddleware(next http.Handler) http.Handler {
 					next.ServeHTTP(w, r)
 				} else {
 					if auth_err != nil {
-						http.Error(w, "403 Access Forbiddent. Authentication Error", http.StatusForbidden)
+						http.Error(w, "403 Access Forbiddent. Authentication Error."+auth_err.Error(), http.StatusForbidden)
 					} else {
-						fmt.Println("Exp", exp)
+						// fmt.Println("Exp", exp)
 						if exp >= 1 && exp < 5*60 {
 							newToken, token_err := refresh(token)
-							fmt.Println("Refresh JWT", newToken)
+							// fmt.Println("Refresh JWT", newToken)
 							if token_err == nil {
 								cookie := &http.Cookie{Name: "JWT", Value: newToken, HttpOnly: false}
 								http.SetCookie(w, cookie)
