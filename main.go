@@ -92,7 +92,7 @@ func authMiddleware(next http.Handler) http.Handler {
 					next.ServeHTTP(w, r)
 				} else {
 					if auth_err != nil {
-						http.Error(w, "403 Access Forbiddent. Authentication Error."+auth_err.Error(), http.StatusForbidden)
+						http.Error(w, "401 Unauthorized Request. Authentication Error."+auth_err.Error(), http.StatusUnauthorized)
 					} else {
 						// fmt.Println("Exp", exp)
 						if exp >= 1 && exp < 5*60 {
