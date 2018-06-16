@@ -20,7 +20,7 @@ var urls map[string]string
 
 func authenticate(r *http.Request) (string, float64, error) {
 	// fmt.Println(r.Cookies())
-	var err error
+	err := errors.New("Unable to find JWT in Cookies")
 	var token *jwt.Token
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == "JWT" {
