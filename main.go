@@ -140,7 +140,6 @@ func main() {
 			urls[suburl] = host
 		}
 	}
-	// fmt.Println(urls)
 	http.HandleFunc("/healthcheck", healthcheck)
 	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
