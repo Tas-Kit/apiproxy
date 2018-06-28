@@ -12,6 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -94,10 +95,12 @@ func authMiddleware(next http.Handler) http.Handler {
 					if auth_err != nil {
 						http.Error(w, "401 Unauthorized Request. Authentication Error."+auth_err.Error(), http.StatusUnauthorized)
 					} else {
-						// fmt.Println("Exp", exp)
-						if exp >= 1 && exp < 5*60 {
+						JWT_REFRESH, _ := strconv.ParseFloat(os.Getenv("JWT_REFRESH"), 64)
+						if JWT_REFRESH == 0 {
+							JWT_REFRESH = 20 * 60
+						}
+						if exp >= 1 && exp < JWT_REFRESH {
 							newToken, token_err := refresh(token)
-							// fmt.Println("Refresh JWT", newToken)
 							if token_err == nil {
 								cookie := &http.Cookie{Name: "JWT", Value: newToken, HttpOnly: false, Path: "/"}
 								http.SetCookie(w, cookie)
@@ -137,7 +140,6 @@ func main() {
 			urls[suburl] = host
 		}
 	}
-	// fmt.Println(urls)
 	http.HandleFunc("/healthcheck", healthcheck)
 	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
