@@ -96,7 +96,7 @@ func authMiddleware(next http.Handler) http.Handler {
 						http.Error(w, "401 Unauthorized Request. Authentication Error."+auth_err.Error(), http.StatusUnauthorized)
 					} else {
 						// fmt.Println("Exp", exp)
-						JWT_REFRESH, _ := strconv.Atoi(os.Getenv("JWT_REFRESH"))
+						JWT_REFRESH, _ := strconv.ParseFloat(os.Getenv("JWT_REFRESH"), 64)
 						if JWT_REFRESH == 0 {
 							JWT_REFRESH = 20 * 60
 						}
