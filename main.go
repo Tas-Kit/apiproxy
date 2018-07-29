@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -17,10 +18,19 @@ import (
 	"time"
 )
 
+type Services struct {
+	Config []Service `services`
+}
+
+type Service struct {
+	Name    string `name`
+	Version string `version`
+	Port    string `port`
+}
+
 var urls map[string]string
 
 func authenticate(r *http.Request) (string, float64, error) {
-	// fmt.Println(r.Cookies())
 	err := errors.New("Unable to find JWT in Cookies")
 	var token *jwt.Token
 	for _, cookie := range r.Cookies() {
@@ -67,8 +77,6 @@ func direct(r *http.Request) {
 }
 
 func modify(r *http.Response) error {
-	fmt.Println(r.Request.Cookies())
-	fmt.Println(r.Cookies())
 	return nil
 }
 
@@ -91,6 +99,8 @@ func authMiddleware(next http.Handler) http.Handler {
 				r.URL.Host = host
 				if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
 					next.ServeHTTP(w, r)
+				} else if strings.HasPrefix(r.URL.Path, suburl+"internal/") {
+					http.Error(w, "401 Unauthorized Request. Interanl access restricted", http.StatusUnauthorized)
 				} else {
 					if auth_err != nil {
 						http.Error(w, "401 Unauthorized Request. Authentication Error."+auth_err.Error(), http.StatusUnauthorized)
@@ -128,18 +138,29 @@ func authMiddleware(next http.Handler) http.Handler {
 func healthcheck(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(rw, "HEALTHY")
 }
+func (c *Services) getConf() *Services {
+
+	yamlFile, err := ioutil.ReadFile("config/service.yaml")
+	if err != nil {
+		fmt.Println("yamlFile.Get err   #%v ", err)
+	}
+	err = yaml.Unmarshal(yamlFile, c)
+	if err != nil {
+		fmt.Println("Unmarshal: %v", err)
+	}
+
+	return c
+}
 
 func main() {
+	var c Services
+	c.getConf()
 	urls = make(map[string]string)
-	for _, env := range os.Environ() {
-		variable := strings.Split(env, "=")
-		if strings.Contains(variable[0], "SERVICE_TASKIT") {
-			suburl := variable[1]
-			host := os.Getenv(strings.Replace(variable[0], "SERVICE_TASKIT", "HOST_TASKIT", 1))
-			// fmt.Println(suburl, host)
-			urls[suburl] = host
-		}
+	for _, service := range c.Config {
+		urls["/api/"+service.Version+"/"+service.Name+"/"] = service.Name + ":" + service.Port
 	}
+	fmt.Println(urls)
+
 	http.HandleFunc("/healthcheck", healthcheck)
 	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
