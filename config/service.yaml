@@ -1,0 +1,8 @@
+services:
+  - name: taskservice
+    version: v1
+    port: 8000
+
+  - name: userservice
+    version: v1
+    port: 8000
