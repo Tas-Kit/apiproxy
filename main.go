@@ -138,6 +138,7 @@ func authMiddleware(next http.Handler) http.Handler {
 func healthcheck(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(rw, "HEALTHY")
 }
+
 func (c *Services) getConf() *Services {
 
 	yamlFile, err := ioutil.ReadFile("config/service.yaml")
