@@ -93,18 +93,18 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		token, exp, auth_err := authenticate(r)
-		fmt.Println("Cookies", r.Cookies())
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
 				r.URL.Host = host
-				if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
+				if strings.HasPrefix(r.URL.Path, suburl+"/exempt/") {
 					next.ServeHTTP(w, r)
-				} else if strings.HasPrefix(r.URL.Path, suburl+"internal/") {
+				} else if strings.HasPrefix(r.URL.Path, suburl+"/internal/") {
 					http.Error(w, "401 Unauthorized Request. Interanl access restricted", http.StatusUnauthorized)
 				} else {
 					if auth_err != nil {
 						http.Error(w, "401 Unauthorized Request. Authentication Error."+auth_err.Error(), http.StatusUnauthorized)
 					} else {
+						fmt.Println("Request URL: " + r.URL.Path + " Host: " + r.URL.Host)
 						JWT_REFRESH, _ := strconv.ParseFloat(os.Getenv("JWT_REFRESH"), 64)
 						if JWT_REFRESH == 0 {
 							JWT_REFRESH = 20 * 60
@@ -157,7 +157,7 @@ func main() {
 	c.getConf()
 	urls = make(map[string]string)
 	for _, service := range c.Config {
-		urls["/api/"+service.Version+"/"+service.Name+"/"] = service.Name + ":" + service.Port
+		urls["/api/"+service.Version+"/"+service.Name] = service.Name + ":" + service.Port
 	}
 	fmt.Println(urls)
 

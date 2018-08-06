@@ -6,3 +6,7 @@ services:
   - name: userservice
     version: v1
     port: 8000
+
+  - name: tastore
+    version: v1
+    port: 8000
