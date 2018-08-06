@@ -95,6 +95,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		token, exp, auth_err := authenticate(r)
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
+				fmt.Println("Request URL: " + r.URL.Path + " Host: " + r.URL.Host)
 				r.URL.Host = host
 				if strings.HasPrefix(r.URL.Path, suburl+"/exempt/") {
 					next.ServeHTTP(w, r)
@@ -104,7 +105,6 @@ func authMiddleware(next http.Handler) http.Handler {
 					if auth_err != nil {
 						http.Error(w, "401 Unauthorized Request. Authentication Error."+auth_err.Error(), http.StatusUnauthorized)
 					} else {
-						fmt.Println("Request URL: " + r.URL.Path + " Host: " + r.URL.Host)
 						JWT_REFRESH, _ := strconv.ParseFloat(os.Getenv("JWT_REFRESH"), 64)
 						if JWT_REFRESH == 0 {
 							JWT_REFRESH = 20 * 60
