@@ -93,13 +93,13 @@ func authMiddleware(next http.Handler) http.Handler {
 		}
 
 		token, exp, auth_err := authenticate(r)
-		fmt.Println("Cookies", r.Cookies())
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
+				fmt.Println("Request URL: " + r.URL.Path + " Host: " + r.URL.Host)
 				r.URL.Host = host
-				if strings.HasPrefix(r.URL.Path, suburl+"exempt/") {
+				if strings.HasPrefix(r.URL.Path, suburl+"/exempt/") {
 					next.ServeHTTP(w, r)
-				} else if strings.HasPrefix(r.URL.Path, suburl+"internal/") {
+				} else if strings.HasPrefix(r.URL.Path, suburl+"/internal/") {
 					http.Error(w, "401 Unauthorized Request. Interanl access restricted", http.StatusUnauthorized)
 				} else {
 					if auth_err != nil {
@@ -138,6 +138,7 @@ func authMiddleware(next http.Handler) http.Handler {
 func healthcheck(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(rw, "HEALTHY")
 }
+
 func (c *Services) getConf() *Services {
 
 	yamlFile, err := ioutil.ReadFile("config/service.yaml")
@@ -157,7 +158,7 @@ func main() {
 	c.getConf()
 	urls = make(map[string]string)
 	for _, service := range c.Config {
-		urls["/api/"+service.Version+"/"+service.Name+"/"] = service.Name + ":" + service.Port
+		urls["/api/"+service.Version+"/"+service.Name] = service.Name + ":" + service.Port
 	}
 	fmt.Println(urls)
 
