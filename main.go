@@ -141,7 +141,7 @@ func healthcheck(rw http.ResponseWriter, r *http.Request) {
 }
 
 func getapp(rw http.ResponseWriter, r *http.Request) {
-	resp, net_err := http.Get("http://d48mbtbdhxub1.cloudfront.net" + r.URL.Path)
+	resp, net_err := http.Get("http://taskit-storage.s3.amazonaws.com" + r.URL.Path)
 	if net_err != nil {
 		fmt.Fprint(rw, "Unable to complete request: %v", net_err)
 	}
