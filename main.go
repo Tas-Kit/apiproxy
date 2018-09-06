@@ -99,7 +99,8 @@ func authMiddleware(next http.Handler) http.Handler {
 				r.URL.Host = host
 				if strings.HasPrefix(r.URL.Path, suburl+"/exempt/") {
 					next.ServeHTTP(w, r)
-				} else if strings.HasPrefix(r.URL.Path, suburl+"/internal/") {
+				} else if strings.HasPrefix(r.URL.Path, suburl+"/internal/") &&
+					os.Getenv("ENV") != "sandbox" {
 					http.Error(w, "401 Unauthorized Request. Interanl access restricted", http.StatusUnauthorized)
 				} else {
 					if auth_err != nil {
@@ -139,6 +140,19 @@ func healthcheck(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(rw, "HEALTHY")
 }
 
+func getapp(rw http.ResponseWriter, r *http.Request) {
+	resp, net_err := http.Get("http://d48mbtbdhxub1.cloudfront.net" + r.URL.Path)
+	if net_err != nil {
+		fmt.Fprint(rw, "Unable to complete request: %v", net_err)
+	}
+	bodyBytes, read_err := ioutil.ReadAll(resp.Body)
+	if read_err != nil {
+		fmt.Fprint(rw, "Unable to parse the response: %v", read_err)
+	}
+	bodyString := string(bodyBytes)
+	fmt.Fprint(rw, bodyString)
+}
+
 func (c *Services) getConf() *Services {
 
 	yamlFile, err := ioutil.ReadFile("config/service.yaml")
@@ -163,6 +177,7 @@ func main() {
 	fmt.Println(urls)
 
 	http.HandleFunc("/healthcheck", healthcheck)
+	http.HandleFunc("/web/app/", getapp)
 	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
 }
