@@ -81,6 +81,7 @@ func modify(r *http.Response) error {
 }
 
 func authMiddleware(next http.Handler) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if os.Getenv("ENV") == "sandbox" {
 			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
