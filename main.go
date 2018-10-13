@@ -85,7 +85,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		if os.Getenv("ENV") == "sandbox" {
 			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, key")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH, DELETE")
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
