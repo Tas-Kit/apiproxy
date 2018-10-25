@@ -154,9 +154,7 @@ func getapp(rw http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(rw, "Unable to parse the response: %v", read_err)
 	}
 	bodyString := string(bodyBytes)
-	if os.Getenv("ENV") == "sandbox" {
-		rw.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	}
+	addCors(rw, r);
 	fmt.Fprint(rw, bodyString)
 }
 
