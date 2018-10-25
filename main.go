@@ -30,6 +30,18 @@ type Service struct {
 
 var urls map[string]string
 
+func addCors(w http.ResponseWriter, r *http.Request)  {
+	if os.Getenv("ENV") == "sandbox" {
+			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, key, PlatformRootKey")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH, DELETE")
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+}
+
 func authenticate(r *http.Request) (string, float64, error) {
 	err := errors.New("Unable to find JWT in Cookies")
 	var token *jwt.Token
@@ -83,16 +95,7 @@ func modify(r *http.Response) error {
 func authMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if os.Getenv("ENV") == "sandbox" {
-			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, key, PlatformRootKey")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH, DELETE")
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-			}
-		}
-
+		addCors(w, r);
 		token, exp, auth_err := authenticate(r)
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
@@ -151,6 +154,7 @@ func getapp(rw http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(rw, "Unable to parse the response: %v", read_err)
 	}
 	bodyString := string(bodyBytes)
+	addCors(rw, r);
 	fmt.Fprint(rw, bodyString)
 }
 
