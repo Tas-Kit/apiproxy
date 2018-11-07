@@ -30,6 +30,18 @@ type Service struct {
 
 var urls map[string]string
 
+func addCors(w http.ResponseWriter, r *http.Request)  {
+	if os.Getenv("ENV") == "sandbox" {
+			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, key, PlatformRootKey")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH, DELETE")
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+}
+
 func authenticate(r *http.Request) (string, float64, error) {
 	err := errors.New("Unable to find JWT in Cookies")
 	var token *jwt.Token
@@ -81,17 +93,9 @@ func modify(r *http.Response) error {
 }
 
 func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if os.Getenv("ENV") == "sandbox" {
-			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH, DELETE")
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-			}
-		}
 
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		addCors(w, r);
 		token, exp, auth_err := authenticate(r)
 		for suburl, host := range urls {
 			if strings.HasPrefix(r.URL.Path, suburl) {
@@ -99,7 +103,8 @@ func authMiddleware(next http.Handler) http.Handler {
 				r.URL.Host = host
 				if strings.HasPrefix(r.URL.Path, suburl+"/exempt/") {
 					next.ServeHTTP(w, r)
-				} else if strings.HasPrefix(r.URL.Path, suburl+"/internal/") {
+				} else if strings.HasPrefix(r.URL.Path, suburl+"/internal/") &&
+					os.Getenv("ENV") != "sandbox" {
 					http.Error(w, "401 Unauthorized Request. Interanl access restricted", http.StatusUnauthorized)
 				} else {
 					if auth_err != nil {
@@ -139,6 +144,20 @@ func healthcheck(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(rw, "HEALTHY")
 }
 
+func getapp(rw http.ResponseWriter, r *http.Request) {
+	resp, net_err := http.Get("http://taskit-storage.s3.amazonaws.com" + r.URL.Path)
+	if net_err != nil {
+		fmt.Fprint(rw, "Unable to complete request: %v", net_err)
+	}
+	bodyBytes, read_err := ioutil.ReadAll(resp.Body)
+	if read_err != nil {
+		fmt.Fprint(rw, "Unable to parse the response: %v", read_err)
+	}
+	bodyString := string(bodyBytes)
+	addCors(rw, r);
+	fmt.Fprint(rw, bodyString)
+}
+
 func (c *Services) getConf() *Services {
 
 	yamlFile, err := ioutil.ReadFile("config/service.yaml")
@@ -163,6 +182,7 @@ func main() {
 	fmt.Println(urls)
 
 	http.HandleFunc("/healthcheck", healthcheck)
+	http.HandleFunc("/web/app/", getapp)
 	http.Handle("/", authMiddleware(&httputil.ReverseProxy{Director: direct, ModifyResponse: modify}))
 	http.ListenAndServe(":8000", nil)
 }

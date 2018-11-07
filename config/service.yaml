@@ -10,3 +10,11 @@ services:
   - name: tastore
     version: v1
     port: 8000
+
+  - name: notifications
+    version: v1
+    port: 8000
+
+  - name: platform
+    version: v1
+    port: 8000
